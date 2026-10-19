@@ -1,3 +1,6 @@
 node_modules/
 .worktrees/
 dist/
+# 抓取的 transcript 仅供个人使用，不进仓库
+public/data/
+.playwright-mcp/

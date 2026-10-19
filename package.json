@@ -1,0 +1,21 @@
+{
+  "name": "podcast-player",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "fetch": "node scripts/fetch-episode.ts",
+    "translate": "node scripts/translate-episode.ts",
+    "build": "node scripts/build.ts",
+    "serve": "node scripts/serve.ts",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "deploy": "node scripts/deploy.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}
