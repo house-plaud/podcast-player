@@ -1,5 +1,5 @@
-// 用法：npm run translate -- 1039 [--model haiku] [--concurrency 4]
-// 读 public/data/<期号>.json，用本机 claude CLI 逐句补上中文译文。
+// 用法：npm run translate -- <节目> <剧集...> [--model haiku] [--concurrency 4]
+// 读 public/data/<节目>/<剧集>.json，用本机 claude CLI 逐句补上中文译文。
 // 每批完成即写盘，中断后重跑只翻译还缺的段落。
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -20,15 +20,16 @@ const { values, positionals } = parseArgs({
     concurrency: { type: 'string', default: '4' },
   },
 });
-const numbers = positionals.map(Number);
-if (numbers.length === 0 || numbers.some((n) => !Number.isInteger(n) || n <= 0)) {
-  console.error('用法：npm run translate -- <期号> [期号...] [--model haiku] [--concurrency 4]');
+const [podcast, ...ids] = positionals;
+if (!podcast || ids.length === 0) {
+  console.error('用法：npm run translate -- <节目> <剧集...> [--model haiku] [--concurrency 4]');
   process.exit(1);
 }
 const concurrency = Math.max(1, Number(values.concurrency));
 
-async function translateEpisode(number: number): Promise<number> {
-  const file = join(DATA_DIR, `${number}.json`);
+async function translateEpisode(id: string): Promise<number> {
+  const file = join(DATA_DIR, podcast!, `${id}.json`);
+  const label = `${podcast}/${id}`;
   const ep = JSON.parse(await readFile(file, 'utf8')) as Episode;
 
   // 并发批次共用一个文件，写盘串行化
@@ -36,7 +37,7 @@ async function translateEpisode(number: number): Promise<number> {
   const save = () => (saving = saving.then(() => writeFile(file, JSON.stringify(ep))));
 
   const translateBatch = async (batch: BatchItem[]) => {
-    const input = JSON.stringify({ title: ep.title, paragraphs: batch });
+    const input = JSON.stringify({ podcast: ep.podcast.title, title: ep.title, paragraphs: batch });
     const out = (await runClaude(input, { model: values.model!, systemPrompt: SYSTEM_PROMPT, schema: RESULT_SCHEMA })) as {
       paragraphs: TranslatedItem[];
     };
@@ -48,7 +49,7 @@ async function translateEpisode(number: number): Promise<number> {
   for (const size of PASSES) {
     const queue = pendingBatches(ep.paragraphs, size);
     if (queue.length === 0) break;
-    console.log(`#${number}：${queue.length} 批（每批 ≤${size} 句，并发 ${concurrency}，模型 ${values.model}）`);
+    console.log(`${label}：${queue.length} 批（每批 ≤${size} 句，并发 ${concurrency}，模型 ${values.model}）`);
     let done = 0;
     const worker = async () => {
       for (let batch = queue.shift(); batch; batch = queue.shift()) {
@@ -66,17 +67,17 @@ async function translateEpisode(number: number): Promise<number> {
   }
 
   const missing = ep.paragraphs.filter((p) => p.sentences.length && !hasTranslation(p)).length;
-  console.log(missing ? `✗ #${number}：仍有 ${missing} 段缺译文，重跑同一命令可续翻` : `✓ #${number}：全部 ${ep.paragraphs.length} 段已翻译`);
+  console.log(missing ? `✗ ${label}：仍有 ${missing} 段缺译文，重跑同一命令可续翻` : `✓ ${label}：全部 ${ep.paragraphs.length} 段已翻译`);
   return missing;
 }
 
 let failed = 0;
-for (const n of numbers) {
+for (const id of ids) {
   try {
-    if (await translateEpisode(n)) failed++;
+    if (await translateEpisode(id)) failed++;
   } catch (err) {
     failed++;
-    console.error(`✗ #${n}：${(err as Error).message}`);
+    console.error(`✗ ${podcast}/${id}：${(err as Error).message}`);
   }
 }
 if (failed) process.exit(1);

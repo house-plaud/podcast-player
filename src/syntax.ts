@@ -1,6 +1,9 @@
 import { unflatten } from './devalue.ts';
 import type { Episode, Paragraph } from '../web/episode.ts';
 import { splitSentences } from '../web/timing.ts';
+import type { Source } from './source.ts';
+
+const PODCAST = { id: 'syntax', title: 'Syntax' };
 
 // syntax.fm 只按期号路由，slug 段任意填都返回同一期
 export function transcriptDataUrl(number: number): string {
@@ -58,6 +61,8 @@ export function extractEpisode(payload: unknown): Episode {
   }));
 
   return {
+    podcast: PODCAST,
+    id: String(show.number),
     number: show.number,
     title: show.title,
     date: show.date.toISOString().slice(0, 10),
@@ -66,3 +71,19 @@ export function extractEpisode(payload: unknown): Episode {
     paragraphs,
   };
 }
+
+export const syntax: Source = {
+  ...PODCAST,
+  description: 'Wes Bos 和 Scott Tolinski 聊 Web 开发的技术播客',
+  homepage: 'https://syntax.fm',
+  async fetchEpisode(ref) {
+    const number = Number(ref);
+    if (!Number.isInteger(number) || number <= 0) throw new Error(`Syntax 的剧集引用应为正整数期号，收到 ${ref}`);
+    const url = transcriptDataUrl(number);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`GET ${url} → ${res.status}`);
+    const episode = extractEpisode(await res.json());
+    if (episode.number !== number) throw new Error(`请求第 ${number} 期，返回的是第 ${episode.number} 期`);
+    return episode;
+  },
+};

@@ -1,4 +1,4 @@
-import type { Episode, EpisodeIndexEntry } from './episode.ts';
+import type { Episode } from './episode.ts';
 import { buildSentences, findActive, formatTime, type Sentence } from './timing.ts';
 import { placePopover } from './layout.ts';
 
@@ -39,22 +39,26 @@ interface ZhPrefs {
 let prefs: ZhPrefs = { subtitle: true, gloss: false };
 let hasZh = false;
 
-async function loadEpisode(): Promise<Episode> {
-  const param = new URLSearchParams(location.search).get('ep');
-  let number = param ? Number(param) : NaN;
-  if (!Number.isInteger(number)) {
-    const index = (await (await fetch('data/index.json')).json()) as EpisodeIndexEntry[];
-    if (!index[0]) throw new Error('还没有抓取任何节目，先运行 npm run fetch -- <期号>');
-    number = index[0].number;
+// player.html?p=<节目>&e=<剧集>；参数不全就回首页
+async function loadEpisode(): Promise<Episode | undefined> {
+  const params = new URLSearchParams(location.search);
+  const podcast = params.get('p');
+  const id = params.get('e');
+  if (!podcast || !id) {
+    location.replace('./');
+    return;
   }
-  const res = await fetch(`data/${number}.json`);
-  if (!res.ok) throw new Error(`第 ${number} 期未抓取（data/${number}.json → ${res.status}）`);
+  const path = `data/${encodeURIComponent(podcast)}/${encodeURIComponent(id)}.json`;
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`${podcast}/${id} 未抓取（${path} → ${res.status}）`);
   return (await res.json()) as Episode;
 }
 
+const episodeLabel = (ep: Episode) => (ep.number === undefined ? ep.podcast.title : `${ep.podcast.title} #${ep.number}`);
+
 function render(ep: Episode) {
-  document.title = `#${ep.number} ${ep.title}`;
-  $('ep-meta').textContent = `Syntax #${ep.number} · ${ep.date}`;
+  document.title = ep.title;
+  $('ep-meta').textContent = `${episodeLabel(ep)} · ${ep.date}`;
   $('ep-title').textContent = ep.title;
   $<HTMLAnchorElement>('source').href = ep.sourceUrl;
 
@@ -95,12 +99,12 @@ function render(ep: Episode) {
 
   hasZh = sentences.some((s) => s.zh);
   zhBtn.disabled = !hasZh;
-  if (!hasZh) zhBtn.title = `本期还没有译文：npm run translate -- ${ep.number}`;
+  if (!hasZh) zhBtn.title = `本集还没有译文：npm run translate -- ${ep.podcast.id} ${ep.id}`;
   applyPrefs();
 
   audio.src = ep.audioUrl;
   if ('mediaSession' in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: ep.title, artist: `Syntax #${ep.number}` });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: ep.title, artist: episodeLabel(ep) });
   }
 }
 
@@ -351,7 +355,8 @@ function wire() {
 
 try {
   wire();
-  render(await loadEpisode());
+  const ep = await loadEpisode();
+  if (ep) render(ep);
 } catch (err) {
   $('ep-meta').textContent = '';
   const msg = document.createElement('p');

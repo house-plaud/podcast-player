@@ -46,6 +46,8 @@ const payload = {
 
 test('从 __data.json 提取节目元数据，段落在抓取时切好句', () => {
   const ep = extractEpisode(payload);
+  assert.deepEqual(ep.podcast, { id: 'syntax', title: 'Syntax' });
+  assert.equal(ep.id, '1039');
   assert.equal(ep.number, 1039);
   assert.equal(ep.title, 'Should You Quit Your Job?');
   assert.equal(ep.date, '2026-09-16');

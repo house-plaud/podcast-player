@@ -6,14 +6,16 @@
 
 ```bash
 npm install
-npm run fetch -- 1039        # 抓取指定期数（可多期），写入 public/data/
-npm run translate -- 1039    # 用本机已登录的 claude CLI 逐句生成中文译文（默认 haiku）
+npm run fetch -- syntax 1039 1045       # 抓取指定节目的剧集，写入 public/data/<节目>/
+npm run translate -- syntax 1039 1045   # 用本机已登录的 claude CLI 逐句生成中文译文（默认 haiku）
 npm run build                # 产出纯静态的 dist/
 npm run serve                # 本地预览，同一 Wi-Fi 下手机可访问
 npm run deploy               # 构建并发布到 GitHub Pages（推送 gh-pages 分支）
 ```
 
-打开 `/` 播放最新抓取的一期，`/?ep=1039` 指定期数。
+首页按节目分组列出已抓取的剧集（列表在构建时从 `public/data/` 派生），点进去是播放页 `player.html?p=<节目>&e=<剧集>`。
+
+目前只接了 Syntax（约第 400 期起才有 transcript，个别期也没有）。接入新节目：在 `src/` 实现一个 `Source`（`src/source.ts`），并在 `src/sources.ts` 注册。
 
 播放条右下角「译」打开中文设置，两项可分别开关（偏好存在本机浏览器）：
 

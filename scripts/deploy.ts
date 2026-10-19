@@ -2,9 +2,9 @@
 // 本地构建后把 dist/ 强推到 origin 的 gh-pages 分支（GitHub Pages 从该分支发布）。
 // 译文依赖本机 claude 登录，CI 里生成不了，所以部署产物在本地构建。
 import { execFileSync } from 'node:child_process';
-import { rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { SiteIndex } from '../web/episode.ts';
 
 const root = join(import.meta.dirname, '..');
 const dist = join(root, 'dist');
@@ -13,8 +13,9 @@ const run = (cmd: string, args: string[], cwd = root) =>
 
 const remote = run('git', ['remote', 'get-url', 'origin']);
 run('node', [join(root, 'scripts', 'build.ts')]);
-if (!existsSync(join(dist, 'data', 'index.json'))) {
-  console.error('dist/data/index.json 不存在：先 npm run fetch -- <期号>');
+const index = JSON.parse(await readFile(join(dist, 'data', 'index.json'), 'utf8')) as SiteIndex;
+if (index.podcasts.length === 0) {
+  console.error('没有任何剧集，先 npm run fetch -- <节目> <剧集>');
   process.exit(1);
 }
 

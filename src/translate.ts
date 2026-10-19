@@ -48,13 +48,13 @@ export function applyTranslations(paragraphs: Paragraph[], items: TranslatedItem
   return { applied, rejected };
 }
 
-export const SYSTEM_PROMPT = `你是技术播客 Syntax（Web 开发主题）的字幕译者，读者是借这档播客学英语的中文听众。
-输入是 JSON：节目标题和若干段落，每段有下标 i、说话人 speaker 和英文句子数组 en。
+export const SYSTEM_PROMPT = `你是英文播客的字幕译者，读者是借播客学英语的中文听众。
+输入是 JSON：节目名 podcast、本集标题 title 和若干段落，每段有下标 i、说话人 speaker 和英文句子数组 en。
 把每个英文句子译成简体中文，规则：
 1. 逐句对应：每段返回的 zh 数组与 en 数量相同、顺序相同，一句对一句，不合并、不拆分。
 2. 转写稿常在句子中间切段：碎片就照碎片译，不补全，不加括号注释或任何说明。
 3. 口语自然、忠实原意，让学习者能对照出原句结构；语气词照实译（Yeah → 对啊，Right? → 对吧？）。
-4. 技术名词、产品名、人名保留英文（React、TypeScript、Sentry、Wes、Scott）。
+4. 专业术语、产品名、人名保留英文（如 React、TypeScript、人名）。
 5. 每段的 i 原样返回。`;
 
 export const RESULT_SCHEMA = {

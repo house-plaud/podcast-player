@@ -9,7 +9,9 @@ export interface Paragraph {
 }
 
 export interface Episode {
-  number: number;
+  podcast: { id: string; title: string };
+  id: string; // 节目内唯一，也是文件名：data/<podcast.id>/<id>.json
+  number?: number; // 有期号的节目才有
   title: string;
   date: string; // YYYY-MM-DD
   audioUrl: string;
@@ -17,8 +19,25 @@ export interface Episode {
   paragraphs: Paragraph[];
 }
 
-export interface EpisodeIndexEntry {
-  number: number;
+// 以下为构建时从全部剧集派生的 data/index.json
+
+export interface EpisodeSummary {
+  id: string;
+  number?: number;
   title: string;
   date: string;
+  duration: number; // 秒，取 transcript 末尾，近似值
+  translated: boolean;
+}
+
+export interface PodcastSummary {
+  id: string;
+  title: string;
+  description: string;
+  homepage: string;
+  episodes: EpisodeSummary[];
+}
+
+export interface SiteIndex {
+  podcasts: PodcastSummary[];
 }
